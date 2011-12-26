@@ -1,0 +1,3 @@
+Todo:
+- chroot into the current directory and drop privileges after starting the server
+
