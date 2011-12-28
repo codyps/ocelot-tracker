@@ -1,5 +1,4 @@
 Todo:
-- Add ipv6 support.
 - Make worker::work and children threadsafe.
 - In connection_middleman::handle_read, use multiple threads to compute responses.
 - Make code INET_ADDRSTRLEN/INET6_ADDRSTRLEN aware.
@@ -8,4 +7,3 @@ Todo:
 
 Notes:
 - Only one announce is possible at a time because db->torrent_list_mutex is locked.
-
