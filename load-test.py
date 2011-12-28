@@ -2,62 +2,46 @@
 
 import socket
 from urllib.parse import urlencode
+from multiprocessing import Process
 
 host = ('localhost', 34000)
 conf_site_password = b'*' * 32
-
-class MemBuf:
-        def __init__(self, size):
-                self.pos = 0
-                self.buf = memoryview(bytearray(size))
-
-        def write(self, data):
-                new_pos = self.pos + len(data)
-                buf[self.pos:new_pos] = data
-                self.pos = new_pos
-
-        def tobytes(self):
-                return self.buf.tobytes()
 
 def client():
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(host)
         
-        action, handler = random.choice([
-                (b'scrape', scrape),
-                (b'update', update),
-                (b'announce', announce),
-        ])
-
         # The client sends at most conf->max_read_buffer bytes.
-        buf = MemBuf(4096)
-        buf.write(b'GET /')
+        buf = b''.join([
+                b'GET /',
+                # passkey := user_id | site-password
+                conf_site_password,
+                b'/',
+                # action := update | scrape | announce
+                b'update',
+                b' ',
+                # params (urlencoded list of arguments)
+                update_params(),
+                b'HTTP/1.1 \r\n',
+                # http headers
+                b'user-agent: load-test.py\r\n'
+        ])
+        sock.send(buf)
+        sock.recv(4096)
 
-        if handler != update:
-                # XXX: Use real user_id's.
-                user_id = b'0' * 32
-                buf.write(user_id)
-        else:
-                buf.write(conf_site_password)
+def update_params():
+        # XXX: Generate actual parameters.
+        return urlencode({
+                'foo': 'bar',
+        }).encode()
 
-        buf.write(b' ')
-        buf.write(action)
-        buf.write(b' ')
-        buf.write(handler().encode())
-        buf.write(b'HTTP/1.1 \r\n')
-        buf.write(b'user-agent: load-test.py\r\n')
+def test():
+        while True:
+                client()
 
-        sock.send(buf.tobytes())
-
-        # XXX: recv() the whole response.
-
-# XXX: Implement handlers.
-
-def scrape():
-        pass
-
-def update():
-        pass
-
-def announce():
-        pass
+if __name__ == '__main__':
+        nr = 64
+        for k in range(nr-1):
+                p = Process(target=test)
+                p.start()
+        test()
