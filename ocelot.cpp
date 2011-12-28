@@ -15,6 +15,11 @@ static site_comm *sc_ptr;
 
 static void sig_handler(int sig)
 {
+#ifdef _DIE_ON_SIG
+	std::cout << "Shutting down immediately\n";
+	exit(0);
+#endif
+
 	std::cout << "Caught SIGINT/SIGTERM" << std::endl;
 	if (work->signal(sig)) {
 		exit(0);
@@ -34,27 +39,27 @@ int main() {
 
 	site_comm sc(conf);
 	sc_ptr = &sc;
-	
+
 	std::vector<std::string> whitelist;
 	db.load_whitelist(whitelist);
 	std::cout << "Loaded " << whitelist.size() << " clients into the whitelist" << std::endl;
 	if(whitelist.size() == 0) {
 		std::cout << "Assuming no whitelist desired, disabling" << std::endl;
 	}
-	
+
 	std::unordered_map<std::string, user> users_list;
 	db.load_users(users_list);
 	std::cout << "Loaded " << users_list.size() << " users" << std::endl;
-	
+
 	std::unordered_map<std::string, torrent> torrents_list;
 	db.load_torrents(torrents_list);
 	std::cout << "Loaded " << torrents_list.size() << " torrents" << std::endl;
 
 	db.load_tokens(torrents_list);
-	
+
 	// Create worker object, which handles announces and scrapes and all that jazz
 	work = new worker(torrents_list, users_list, whitelist, &conf, &db, sc);
-	
+
 	// Create connection mother, which binds to its socket and handles the event stuff
 	mother = new connection_mother(work, &conf, &db);
 

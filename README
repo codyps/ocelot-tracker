@@ -1,8 +1,11 @@
 Todo:
-- Convert libev code over to libevent/pthreads.
+- Add ipv6 support.
+- Make worker::work and children threadsafe.
+- In connection_middleman::handle_read, use multiple threads to compute responses.
 - Make code INET_ADDRSTRLEN/INET6_ADDRSTRLEN aware.
 - Investiage if compression would be useful.
+- Replace std::map with something more efficient. (According to profiling data, the only function busier than worker::work is std::_Rb_tree::_M_lower_bound, which is used by std::map.)
 
-Changelog:
-5b89729 Adds support for dropping root privileges.
-0a20e9b Initial commit.
+Notes:
+- Only one announce is possible at a time because db->torrent_list_mutex is locked.
+

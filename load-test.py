@@ -26,8 +26,8 @@ def client():
                 # http headers
                 b'user-agent: load-test.py\r\n'
         ])
-        sock.send(buf)
-        sock.recv(4096)
+        assert sock.send(buf) == len(buf)
+        assert b'success' in sock.recv(4096)
 
 def update_params():
         # XXX: Generate actual parameters.
