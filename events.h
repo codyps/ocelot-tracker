@@ -72,10 +72,12 @@ class connection_middleman {
 		config * conf;
 		connection_mother * mother;
 		worker * work;
-		sockaddr_in client_addr;
+
+		struct addrinfo* ai;
+		struct sockaddr* client_addr;
 
 	public:
-		connection_middleman(int &listen_socket, struct sockaddr* address, socklen_t &addr_len, worker* work, connection_mother * mother_arg, config * config_obj);
+		connection_middleman(int &listen_socket, struct addrinfo* info, worker* work, connection_mother * mother_arg, config * config_obj);
 		~connection_middleman();
 
 		void handle_read(ev::io &watcher, int events_flags);
@@ -85,3 +87,6 @@ class connection_middleman {
 
 /* Get information about a host. */
 struct addrinfo* getnetinfo(const char* host, int port, int proto);
+
+/* Get human-readable information out of a sockaddr. */
+char *get_ip_str(struct sockaddr *sa);

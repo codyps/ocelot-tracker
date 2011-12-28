@@ -96,7 +96,7 @@ void connection_mother::handle_connect(ev::io &watcher, int events_flags) {
 	// Spawn a new middleman
 	if(open_connections < conf->max_middlemen) {
 		opened_connections++;
-		new connection_middleman(sock, ai->ai_addr, ai->ai_addrlen, work, this, conf);
+		new connection_middleman(sock, ai, work, this, conf);
 	}
 }
 
@@ -113,10 +113,10 @@ connection_mother::~connection_mother()
 
 //---------- Connection middlemen - these little guys live until their connection is closed
 
-connection_middleman::connection_middleman(int &listen_socket, struct sockaddr* address, socklen_t &addr_len, worker * new_work, connection_mother * mother_arg, config * config_obj) :
-	conf(config_obj), mother (mother_arg), work(new_work) {
+connection_middleman::connection_middleman(int &listen_socket, struct addrinfo* info, worker * new_work, connection_mother * mother_arg, config * config_obj) :
+	conf(config_obj), mother (mother_arg), work(new_work), ai(info) {
 
-	connect_sock = accept(listen_socket, address, &addr_len);
+	connect_sock = accept(listen_socket, ai->ai_addr, &ai->ai_addrlen);
 	if(connect_sock == -1) {
 		std::cout << "Accept failed, errno " << errno << ": " << strerror(errno) << std::endl;
 		mother->increment_open_connections(); // destructor decrements open connections
@@ -134,10 +134,12 @@ connection_middleman::connection_middleman(int &listen_socket, struct sockaddr* 
 	}
 
 	// Get their info
-	if(getpeername(connect_sock, (sockaddr *) &client_addr, &addr_len) == -1) {
+	client_addr = new sockaddr[ai->ai_addrlen];
+	client_addr->sa_family = ai->ai_family;
+
+	if(getpeername(connect_sock, client_addr, &ai->ai_addrlen) == -1) {
 		//std::cout << "Could not get client info" << std::endl;
 	}
-
 
 	read_event.set<connection_middleman, &connection_middleman::handle_read>(this);
 	read_event.start(connect_sock, ev::READ);
@@ -151,6 +153,7 @@ connection_middleman::connection_middleman(int &listen_socket, struct sockaddr* 
 }
 
 connection_middleman::~connection_middleman() {
+	delete client_addr;
 	close(connect_sock);
 	mother->decrement_open_connections();
 }
@@ -170,12 +173,13 @@ void connection_middleman::handle_read(ev::io &watcher, int events_flags) {
 
 	std::string stringbuf = buffer;
 
-	char ip[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &(client_addr.sin_addr), ip, INET_ADDRSTRLEN);
+	char* ip = get_ip_str(client_addr);
 	std::string ip_str = ip;
 
 	//--- CALL WORKER
 	response = work->work(stringbuf, ip_str);
+
+	delete ip;
 
 	// Find out when the socket is writeable.
 	// The loop in connection_mother will call handle_write when it is.
@@ -216,4 +220,21 @@ struct addrinfo* getnetinfo(const char* host, int port, int socktype)
 		std::cerr << "[getaddrinfo] " << gai_strerror(err) << std::endl;
 	}
 	return result;
+}
+
+/* http://www.retran.com/beej/sockaddr_inman.html */
+char *get_ip_str(struct sockaddr *sa)
+{
+	if (sa->sa_family == AF_INET) {
+		char* buf = new char[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
+			buf, INET_ADDRSTRLEN);
+                return buf;
+	} else if (sa->sa_family == AF_INET6) {
+		char* buf = new char[INET6_ADDRSTRLEN];
+		inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
+			buf, INET6_ADDRSTRLEN);
+		return buf;
+	}
+	return NULL;
 }
