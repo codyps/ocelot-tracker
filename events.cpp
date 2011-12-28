@@ -84,7 +84,7 @@ connection_mother::connection_mother(worker * worker_obj, config * config_obj, m
 		if (chroot(".") < 0) {
 			std::cerr << "Warning: couldn't chroot, " << strerror(errno) << std::endl;
 		}
-		if (!setuid(1000) < 0) {
+		if (setuid(1000) != 0) {
 			std::cerr << "Warning: couldn't setuid, " << strerror(errno) << std::endl;
 		}
 	}
