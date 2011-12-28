@@ -1,7 +1,6 @@
 Todo:
 - Make worker::work and children threadsafe.
 - In connection_middleman::handle_read, use multiple threads to compute responses.
-- Make code INET_ADDRSTRLEN/INET6_ADDRSTRLEN aware.
 - Investiage if compression would be useful.
 - Replace std::map with something more efficient. (According to profiling data, the only function busier than worker::work is std::_Rb_tree::_M_lower_bound, which is used by std::map.)
 
