@@ -13,6 +13,8 @@
 // inttostr
 #include "misc_functions.h"
 
+static struct addrinfo* ai;
+
 // Define the connection mother (first half) and connection middlemen (second half)
 
 //TODO Better errors
@@ -96,7 +98,7 @@ void connection_mother::handle_connect(ev::io &watcher, int events_flags) {
 	// Spawn a new middleman
 	if(open_connections < conf->max_middlemen) {
 		opened_connections++;
-		new connection_middleman(sock, ai, work, this, conf);
+		new connection_middleman(sock, work, this, conf);
 	}
 }
 
@@ -113,8 +115,8 @@ connection_mother::~connection_mother()
 
 //---------- Connection middlemen - these little guys live until their connection is closed
 
-connection_middleman::connection_middleman(int &listen_socket, struct addrinfo* info, worker * new_work, connection_mother * mother_arg, config * config_obj) :
-	conf(config_obj), mother (mother_arg), work(new_work), ai(info) {
+connection_middleman::connection_middleman(int &listen_socket, worker * new_work, connection_mother * mother_arg, config * config_obj) :
+	conf(config_obj), mother (mother_arg), work(new_work) {
 
 	connect_sock = accept(listen_socket, ai->ai_addr, &ai->ai_addrlen);
 	if(connect_sock == -1) {
@@ -134,10 +136,8 @@ connection_middleman::connection_middleman(int &listen_socket, struct addrinfo* 
 	}
 
 	// Get their info
-	client_addr = new sockaddr[ai->ai_addrlen];
-	client_addr->sa_family = ai->ai_family;
-
-	if(getpeername(connect_sock, client_addr, &ai->ai_addrlen) == -1) {
+	client_addr.ss_family = ai->ai_family;
+	if(getpeername(connect_sock, (struct sockaddr*) &client_addr, &ai->ai_addrlen) == -1) {
 		//std::cout << "Could not get client info" << std::endl;
 	}
 
@@ -153,7 +153,6 @@ connection_middleman::connection_middleman(int &listen_socket, struct addrinfo* 
 }
 
 connection_middleman::~connection_middleman() {
-	delete client_addr;
 	close(connect_sock);
 	mother->decrement_open_connections();
 }
@@ -173,13 +172,12 @@ void connection_middleman::handle_read(ev::io &watcher, int events_flags) {
 
 	std::string stringbuf = buffer;
 
-	char* ip = get_ip_str(client_addr);
+	char ip[INET6_ADDRSTRLEN];
+	get_ip_str((struct sockaddr*) &client_addr, ip, INET6_ADDRSTRLEN);
 	std::string ip_str = ip;
 
 	//--- CALL WORKER
 	response = work->work(stringbuf, ip_str);
-
-	delete ip;
 
 	// Find out when the socket is writeable.
 	// The loop in connection_mother will call handle_write when it is.
@@ -222,19 +220,24 @@ struct addrinfo* getnetinfo(const char* host, int port, int socktype)
 	return result;
 }
 
-/* http://www.retran.com/beej/sockaddr_inman.html */
-char *get_ip_str(struct sockaddr *sa)
+/* http://beej.us/guide/bgnet/output/html/multipage/inet_ntopman.html */
+char *get_ip_str(struct sockaddr *sa, char *s, size_t maxlen)
 {
-	if (sa->sa_family == AF_INET) {
-		char* buf = new char[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
-			buf, INET_ADDRSTRLEN);
-                return buf;
-	} else if (sa->sa_family == AF_INET6) {
-		char* buf = new char[INET6_ADDRSTRLEN];
-		inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
-			buf, INET6_ADDRSTRLEN);
-		return buf;
-	}
-	return NULL;
+    switch(sa->sa_family) {
+        case AF_INET:
+            inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
+                    s, maxlen);
+            break;
+
+        case AF_INET6:
+            inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
+                    s, maxlen);
+            break;
+
+        default:
+            strncpy(s, "Unknown AF", maxlen);
+            return NULL;
+    }
+
+    return s;
 }

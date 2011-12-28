@@ -12,3 +12,6 @@ $(OCELOT): $(OBJS)
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 clean:
 	rm -f $(OCELOT) $(OBJS)
+
+debug:
+	make CXX=clang++ UFLAGS='-g -pg -D_DIE_ON_SIG' -j3

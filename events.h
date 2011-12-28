@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -35,7 +37,6 @@ THE WORKER
 class connection_mother {
 	private:
 		int sock;
-		struct addrinfo* ai;
 
 		worker * work;
 		config * conf;
@@ -73,11 +74,10 @@ class connection_middleman {
 		connection_mother * mother;
 		worker * work;
 
-		struct addrinfo* ai;
-		struct sockaddr* client_addr;
+		struct sockaddr_storage client_addr;
 
 	public:
-		connection_middleman(int &listen_socket, struct addrinfo* info, worker* work, connection_mother * mother_arg, config * config_obj);
+		connection_middleman(int &listen_socket, worker* work, connection_mother * mother_arg, config * config_obj);
 		~connection_middleman();
 
 		void handle_read(ev::io &watcher, int events_flags);
@@ -89,4 +89,4 @@ class connection_middleman {
 struct addrinfo* getnetinfo(const char* host, int port, int proto);
 
 /* Get human-readable information out of a sockaddr. */
-char *get_ip_str(struct sockaddr *sa);
+char *get_ip_str(struct sockaddr *sa, char *s, size_t maxlen);
