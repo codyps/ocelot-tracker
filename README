@@ -1,3 +1,8 @@
 Todo:
-- chroot into the current directory and drop privileges after starting the server
+- Convert libev code over to libevent/pthreads.
+- Make code INET_ADDRSTRLEN/INET6_ADDRSTRLEN aware.
+- Investiage if compression would be useful.
 
+Changelog:
+5b89729 Adds support for dropping root privileges.
+0a20e9b Initial commit.
