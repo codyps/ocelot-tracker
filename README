@@ -1,8 +1,39 @@
-Todo:
+:: About
+
+The ocelot tracker has a long and storied [past](http://torrentfreak.com/what-cd-debuts-lightweight-tracker-for-its-5-million-peers-101014/).
+
+A friend of mine asked me to take a look at it a while back, and I ended
+up making some modifications related to setuid() and IPv6. I posted a patch
+to the what.cd developer forums, but received no helpful responses. 
+
+I've kept these changes private for a long time. I'm releasing them now
+because it seems like the public-facing what.cd forums have shut down. Every
+page seems to display only an "Unexpected error" message (as of 07/24/2012,
+but this has been the case for months).
+
+My hope is that people who want to work on ocelot will have an easier time
+on github.
+
+:: Todo
+
 - Make worker::work and children threadsafe.
 - In connection_middleman::handle_read, use multiple threads to compute responses.
 - Investiage if compression would be useful.
 - Replace std::map with something more efficient. (According to profiling data, the only function busier than worker::work is std::_Rb_tree::_M_lower_bound, which is used by std::map.)
 
-Notes:
+:: Notes
+
 - Only one announce is possible at a time because db->torrent_list_mutex is locked.
+
+:: License
+
+Ocelot does not ship with a license file. I don't know what the original
+developers' wishes were, but the standard disclaimer no doubt applies;
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
